@@ -18,7 +18,6 @@ int bq769x0_init(void) {
   }
 
   SYS_LOG_INF("initialized");
-
   return 0;
 }
 
@@ -44,6 +43,7 @@ int bq769x0_boot(char *boot_port, int boot_pin) {
   k_sleep(20);
 
   SYS_LOG_INF("booted");
+  return 0;
 }
 
 int bq769x0_configure(void) {
@@ -68,6 +68,5 @@ int bq769x0_configure(void) {
   }
 
   SYS_LOG_INF("configured");
-
   return 0;
 }
