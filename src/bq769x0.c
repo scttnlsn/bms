@@ -166,3 +166,15 @@ int bq769x0_configure(bq769x0_config_t config) {
   SYS_LOG_INF("configured");
   return 0;
 }
+
+uint16_t bq769x0_read_cell_voltage(int cell_n) {
+  uint8_t reg = BQ769X0_REG_VC1_HI + cell_n * 2;
+  uint8_t buffer[2];
+
+  if (i2c_burst_read(i2c, BQ769X0_ADDR, reg, buffer, 2)) {
+    SYS_LOG_ERR("failed to read cell %d voltage", cell_n);
+  }
+
+  uint16_t adc_value = ((buffer[0] & 0b00111111) << 8) | buffer[1];
+  return adc_value * adc_gain / 1000 + adc_offset;
+}

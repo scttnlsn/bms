@@ -3,6 +3,11 @@
 #include "bms.h"
 #include "bq769x0.h"
 
+#define NUM_CELLS 4
+
+static uint8_t cells[NUM_CELLS] = { 0, 1, 2, 4, };
+static uint16_t cell_voltages[NUM_CELLS];
+
 int bms_init(void) {
   SYS_LOG_INF("initializing...");
 
@@ -30,4 +35,14 @@ int bms_init(void) {
 
   SYS_LOG_INF("initialized");
   return 0;
+}
+
+void bms_measure(void) {
+  for (int i = 0; i < NUM_CELLS; i++) {
+    cell_voltages[i] = bq769x0_read_cell_voltage(cells[i]);
+  }
+}
+
+uint16_t *bms_cell_voltages(void) {
+  return cell_voltages;
 }

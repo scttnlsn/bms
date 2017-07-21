@@ -8,6 +8,8 @@
 #define STACKSIZE 1024
 #define PRIORITY 5
 
+// blinker thread
+
 K_THREAD_STACK_DEFINE(blinker_thread_stack_area, STACKSIZE);
 static struct k_thread blinker_thread_data;
 
@@ -24,6 +26,36 @@ void blinker_thread(void *a, void *b, void *c) {
   }
 }
 
+// bms thread
+
+K_THREAD_STACK_DEFINE(bms_thread_stack_area, STACKSIZE);
+static struct k_thread bms_thread_data;
+
+void bms_thread(void *a, void *b, void *c) {
+  bms_init();
+
+  while (1) {
+    bms_measure();
+    k_sleep(250);
+  }
+}
+
+// serial logger thread
+
+K_THREAD_STACK_DEFINE(logger_thread_stack_area, STACKSIZE);
+static struct k_thread logger_thread_data;
+
+void logger_thread(void *a, void *b, void *c) {
+  uint16_t *voltages;
+
+  while (1) {
+    voltages = bms_cell_voltages();
+
+    printk("mV=%d, %d, %d, %d\n", voltages[0], voltages[1], voltages[2], voltages[3]);
+    k_sleep(2000);
+  }
+}
+
 void main(void) {
   SYS_LOG_INF("starting...");
 
@@ -34,7 +66,19 @@ void main(void) {
     NULL, NULL, NULL,
     PRIORITY, 0, K_NO_WAIT);
 
-  bms_init();
+  k_thread_create(
+    &bms_thread_data, bms_thread_stack_area,
+    K_THREAD_STACK_SIZEOF(bms_thread_stack_area),
+    bms_thread,
+    NULL, NULL, NULL,
+    PRIORITY, 0, K_NO_WAIT);
+
+  k_thread_create(
+    &logger_thread_data, logger_thread_stack_area,
+    K_THREAD_STACK_SIZEOF(logger_thread_stack_area),
+    logger_thread,
+    NULL, NULL, NULL,
+    PRIORITY, 0, K_NO_WAIT);
 
   SYS_LOG_INF("started");
 }

@@ -59,5 +59,6 @@ typedef struct {
 int bq769x0_init(void);
 int bq769x0_boot(char *boot_port, int boot_pin);
 int bq769x0_configure(bq769x0_config_t config);
+uint16_t bq769x0_read_cell_voltage(int cell_n);
 
 #endif
