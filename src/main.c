@@ -3,6 +3,7 @@
 #include <logging/sys_log.h>
 #include <zephyr.h>
 
+#include "ble.h"
 #include "bms.h"
 
 #define STACKSIZE 1024
@@ -33,6 +34,7 @@ static struct k_thread bms_thread_data;
 
 void bms_thread(void *a, void *b, void *c) {
   int rc = bms_init();
+
   if (rc < 0) {
     SYS_LOG_INF("failed to initialize BMS");
   }
@@ -58,12 +60,25 @@ void logger_thread(void *a, void *b, void *c) {
 
     printk("mV=%d, %d, %d, %d\n", voltages[0], voltages[1], voltages[2], voltages[3]);
     printk("mA=%d\n", current);
+
+    uint16_t values[5] = {
+      voltages[0],
+      voltages[1],
+      voltages[2],
+      voltages[3],
+      current
+    };
+
+    ble_notify((uint8_t *) values, 10);
+
     k_sleep(2000);
   }
 }
 
 void main(void) {
   SYS_LOG_INF("starting...");
+
+  ble_init();
 
   k_thread_create(
     &blinker_thread_data, blinker_thread_stack_area,
