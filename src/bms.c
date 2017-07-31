@@ -11,21 +11,21 @@ static uint8_t cells[NUM_CELLS] = { 0, 1, 2, 4, };
 static uint16_t cell_voltages[NUM_CELLS];
 
 static int16_t current; // most recent 250ms current average
-static uint32_t charge; // cumulative mA seconds
-
-static struct gpio_callback alert_cb;
+static int32_t charge; // cumulative mA seconds
 
 // state
 static uint32_t error_tick = 0;
-static uint8_t alert_triggered = 0;
 static uint8_t ov = 0;
 static uint8_t uv = 0;
+static uint8_t scd = 0;
+static uint8_t ocd = 0;
 
-void bms_handle_alert(void);
 void bms_handle_error(uint8_t status);
 
+static struct gpio_callback alert_cb;
+
 static void bms_alert(struct device *gpiob, struct gpio_callback *cb, u32_t pins) {
-  alert_triggered = 1;
+  // TODO
 }
 
 int bms_init(void) {
@@ -58,8 +58,8 @@ int bms_init(void) {
   }
 
   bq769x0_config_t bq769x0_config;
-  bq769x0_config.uvp = 3000;
-  bq769x0_config.ovp = 3550;
+  bq769x0_config.ovp = CONFIG_BMS_OVP_ENABLE;
+  bq769x0_config.uvp = CONFIG_BMS_UVP_ENABLE;
 
   rc = bq769x0_configure(bq769x0_config);
   if (rc < 0) {
@@ -87,15 +87,75 @@ int bms_init(void) {
 }
 
 // should be called at least every 250ms for accurate coulomb counting
-void bms_measure(void) {
-  if (alert_triggered) {
-    alert_triggered = 0;
-    bms_handle_alert();
+int bms_update(void) {
+  uint8_t status;
+  int rc;
+
+  rc = bq769x0_read_status(&status);
+  if (rc < 0) {
+    return rc;
+  }
+
+  // mask out CC_READY (not considered an error)
+  uint8_t error = status & 0b01111111;
+
+  if (error) {
+    bms_handle_error(error);
+  }
+
+  uint8_t cc_ready = status & 0b10000000;
+  if (cc_ready) {
+    bq769x0_read_current(&current);
+    charge += (current / 4); // CC updated every 250ms
   }
 
   for (int i = 0; i < NUM_CELLS; i++) {
     bq769x0_read_voltage(cells[i], &cell_voltages[i]);
   }
+
+  if (scd) {
+    // TODO
+    return 0;
+  }
+
+  if (ocd) {
+    // TODO
+    return 0;
+  }
+
+  if (ov) {
+    // check to see if voltages have fallen enough to disable OVP
+    uint8_t disable = 1;
+
+    for (int i = 0; i < NUM_CELLS; i++) {
+      disable = disable & (cell_voltages[i] <= CONFIG_BMS_OVP_DISABLE);
+    }
+
+    if (disable) {
+      bq769x0_clear_ov();
+
+      // FIXME: Do we need this?
+      /* bq769x0_enable_charging(); */
+    }
+  }
+
+  if (uv) {
+    // check to see if voltages have risen enough to disable UVP
+    uint8_t disable = 1;
+
+    for (int i = 0; i < NUM_CELLS; i++) {
+      disable = disable & (cell_voltages[i] >= CONFIG_BMS_UVP_DISABLE);
+    }
+
+    if (disable) {
+      bq769x0_clear_uv();
+
+      // FIXME: Do we need this?
+      /* bq769x0_enable_discharging(); */
+    }
+  }
+
+  return 0;
 }
 
 uint16_t *bms_cell_voltages(void) {
@@ -112,42 +172,20 @@ int32_t bms_charge(void) {
 
 // helpers
 
-void bms_handle_alert(void) {
-  uint8_t status;
-
-  if (bq769x0_read_status(&status) < 0) {
-    return;
-  }
-
-  // mask out CC_READY (not considered an error)
-  uint8_t error = status & 0b01111111;
-
-  if (error) {
-    bms_handle_error(error);
-  }
-
-  if (status & 0b10000000) {
-    // CC_READY
-    bq769x0_read_current(&current);
-
-    charge += (current / 4); // CC updated every 250ms
-  }
-}
-
 void bms_handle_error(uint8_t status) {
-  SYS_LOG_INF("error: %d", status);
+  SYS_LOG_INF("error status: %d", status);
 
   error_tick = k_cycle_get_32();
 
   if (status & 0b00000100) {
     // over voltage
-    SYS_LOG_ERR("OVER VOLTAGE");
+    SYS_LOG_ERR("over voltage limit");
     ov = 1;
   }
 
   if (status & 0b00001000) {
     // under voltage
-    SYS_LOG_ERR("UNDER VOLTAGE");
+    SYS_LOG_ERR("under voltage limit");
     uv = 1;
 
     // TODO: probably shut down the MCU here as well, how do we know when the re-enable?
@@ -155,7 +193,8 @@ void bms_handle_error(uint8_t status) {
 
   if (status & 0b00000010) {
     // short circuit
-    SYS_LOG_ERR("SHORT CIRCUIT");
+    SYS_LOG_ERR("short circuit");
+    scd = 1;
 
     // TODO: wait some time before clearing this
     // currently requires a reset
@@ -163,7 +202,8 @@ void bms_handle_error(uint8_t status) {
 
   if (status & 0b00000001) {
     // overcurrent discharge
-    SYS_LOG_ERR("OVERCURRENT DISCHARGE");
+    SYS_LOG_ERR("overcurrent discharge");
+    ocd = 1;
 
     // TODO: wait some time before clearing this
     // currently requires a reset

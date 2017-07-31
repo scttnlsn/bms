@@ -27,6 +27,8 @@
 
 // bits
 
+#define BQ769X0_REG_CTRL1_ADC_EN 4
+
 #define BQ769X0_REG_STAT_OCD 0
 #define BQ769X0_REG_STAT_SCD 1
 #define BQ769X0_REG_STAT_OV 2
@@ -62,6 +64,8 @@ int bq769x0_configure(bq769x0_config_t config);
 int bq769x0_read_voltage(int cell_n, uint16_t *voltage);
 int bq769x0_read_current(int16_t *current);
 int bq769x0_read_status(uint8_t *status);
+int bq769x0_clear_ov(void);
+int bq769x0_clear_uv(void);
 int bq769x0_enable_discharging(void);
 int bq769x0_enable_charging(void);
 int bq769x0_balance_cell(int8_t cell);

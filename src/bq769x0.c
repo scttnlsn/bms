@@ -91,16 +91,10 @@ int bq769x0_configure(bq769x0_config_t config) {
   }
 
   // enable ADC
-  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_CTRL1, 0b10000);
+  uint8_t adc_en = 1 << BQ769X0_REG_CTRL1_ADC_EN;
+  rc = i2c_reg_update_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_CTRL1, adc_en, adc_en);
   if (rc < 0) {
     SYS_LOG_ERR("failed to enable ADC");
-    return rc;
-  }
-
-  // clear all alerts
-  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_STAT, 0b11111111);
-  if (rc < 0) {
-    SYS_LOG_ERR("failed to clear alerts");
     return rc;
   }
 
@@ -133,6 +127,13 @@ int bq769x0_configure(bq769x0_config_t config) {
     return rc;
   }
   adc_gain = 365 + (((adc_gain1 & 0b00001100) << 1) | ((adc_gain2 & 0b11100000) >> 5));
+
+  // clear all alerts
+  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_STAT, 0b10111111);
+  if (rc < 0) {
+    SYS_LOG_ERR("failed to clear alerts");
+    return rc;
+  }
 
   // set under-voltage protection
   uint8_t uvp = ((((config.uvp - adc_offset) * 1000 / adc_gain) >> 4) & 0xFF) + 1;
@@ -212,11 +213,13 @@ int bq769x0_read_current(int16_t *current) {
 
   rc = i2c_reg_read_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_CC_HI, &msb);
   if (rc < 0) {
+    SYS_LOG_ERR("failed to read CC_HI");
     return rc;
   }
 
   rc = i2c_reg_read_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_CC_LO, &lsb);
   if (rc < 0) {
+    SYS_LOG_ERR("failed to read CC_LO");
     return rc;
   }
 
@@ -225,7 +228,13 @@ int bq769x0_read_current(int16_t *current) {
 
   // clear CC_READY
   uint8_t cc_ready = 1 << BQ769X0_REG_STAT_CC_READY;
-  return i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_STAT, cc_ready);
+  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_STAT, cc_ready);
+  if (rc < 0) {
+    SYS_LOG_ERR("failed to clear CC_READY");
+    return rc;
+  }
+
+  return 0;
 }
 
 int bq769x0_read_status(uint8_t *status) {
@@ -235,6 +244,30 @@ int bq769x0_read_status(uint8_t *status) {
   if (rc < 0) {
     SYS_LOG_ERR("failed to read status");
     return rc;
+  }
+
+  return 0;
+}
+
+int bq769x0_clear_ov(void) {
+  int rc;
+
+  uint8_t ov = 1 << BQ769X0_REG_STAT_OV;
+  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_STAT, ov);
+  if (rc < 0) {
+    SYS_LOG_ERR("failed to clear OV");
+  }
+
+  return 0;
+}
+
+int bq769x0_clear_uv(void) {
+  int rc;
+
+  uint8_t uv = 1 << BQ769X0_REG_STAT_UV;
+  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_STAT, uv);
+  if (rc < 0) {
+    SYS_LOG_ERR("failed to clear UV");
   }
 
   return 0;

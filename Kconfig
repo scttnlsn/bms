@@ -15,7 +15,7 @@ config BMS_BOOT_DEVICE
        prompt "Boot device"
        default "GPIO_0"
        help
-         Specify the GPIO device name to be used for the BMS boot port
+         The GPIO device name to be used for the BMS boot port
 
 config BMS_BOOT_PIN
        int
@@ -29,20 +29,50 @@ config BMS_ALERT_DEVICE
        prompt "Alert device"
        default "GPIO_0"
        help
-         Specify the GPIO device name to be used for the BMS alert port
+         The GPIO device name to be used for the BMS alert port
 
 config BMS_ALERT_PIN
        int
        prompt "Alert pin"
        default 22
        help
-         Specify the GPIO pin number to be used for the BMS alert pin
+         The GPIO pin number to be used for the BMS alert pin
 
 config BMS_I2C_DEVICE
        string
        prompt "I2C device"
        default "I2C_0"
        help
-         Specify the I2C device to be used for communicating with BQ769x0
+         The I2C device to be used for communicating with BQ769x0
+
+config BMS_OVP_ENABLE
+       int
+       prompt "OVP enable"
+       default 3550
+       help
+         The minimum cell voltage (specified in mV) at which over-voltage protection is enabled
+
+config BMS_OVP_DISABLE
+       int
+       prompt "OVP disable"
+       default 3400
+       help
+         The maximum cell voltage (specified in mV) at which over-voltage protection is disabled.
+         This only applies while OVP is enabled.
+
+config BMS_UVP_ENABLE
+       int
+       prompt "UVP enable"
+       default 3000
+       help
+         The maximum cell voltage (specified in mV) at which under-voltage proection is enabled
+
+config BMS_UVP_DISABLE
+       int
+       prompt "UVP disable"
+       default 3100
+       help
+         The minimum cell voltage (specified in mV) at which under-voltage protection is disabled.
+         This only applies whiel UVP is enabled.
 
 endmenu

@@ -40,7 +40,7 @@ void bms_thread(void *a, void *b, void *c) {
   }
 
   while (1) {
-    bms_measure();
+    bms_update();
     k_sleep(200);
   }
 }
@@ -53,13 +53,16 @@ static struct k_thread logger_thread_data;
 void logger_thread(void *a, void *b, void *c) {
   uint16_t *voltages;
   int16_t current;
+  int32_t charge;
 
   while (1) {
     voltages = bms_cell_voltages();
     current = bms_current();
+    charge = bms_charge();
 
     printk("mV=%d, %d, %d, %d\n", voltages[0], voltages[1], voltages[2], voltages[3]);
     printk("mA=%d\n", current);
+    printk("charge=%d\n", charge);
 
     uint16_t values[5] = {
       voltages[0],
