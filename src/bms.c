@@ -38,7 +38,7 @@ int bms_init(void) {
     return -EINVAL;
   }
 
-  gpio_pin_configure(gpio, 22, GPIO_DIR_IN | GPIO_INT | GPIO_INT_EDGE | GPIO_INT_ACTIVE_HIGH);
+  gpio_pin_configure(gpio, 22, GPIO_DIR_IN | GPIO_INT | GPIO_INT_EDGE | GPIO_INT_ACTIVE_HIGH | GPIO_PUD_PULL_DOWN);
   gpio_init_callback(&alert_cb, bms_alert, BIT(22));
   gpio_add_callback(gpio, &alert_cb);
   gpio_pin_enable_callback(gpio, 22);
