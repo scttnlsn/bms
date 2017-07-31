@@ -9,7 +9,9 @@
 
 static uint8_t cells[NUM_CELLS] = { 0, 1, 2, 4, };
 static uint16_t cell_voltages[NUM_CELLS];
-static int16_t pack_current;
+
+static int16_t current; // most recent 250ms current average
+static uint32_t charge; // cumulative mA seconds
 
 static struct gpio_callback alert_cb;
 
@@ -84,26 +86,28 @@ int bms_init(void) {
   return 0;
 }
 
+// should be called at least every 250ms for accurate coulomb counting
 void bms_measure(void) {
   if (alert_triggered) {
     alert_triggered = 0;
-
     bms_handle_alert();
   }
 
   for (int i = 0; i < NUM_CELLS; i++) {
     bq769x0_read_voltage(cells[i], &cell_voltages[i]);
   }
-
-  bq769x0_read_current(&pack_current);
 }
 
 uint16_t *bms_cell_voltages(void) {
   return cell_voltages;
 }
 
-int16_t bms_pack_current(void) {
-  return pack_current;
+int16_t bms_current(void) {
+  return current;
+}
+
+int32_t bms_charge(void) {
+  return charge;
 }
 
 // helpers
@@ -120,6 +124,13 @@ void bms_handle_alert(void) {
 
   if (error) {
     bms_handle_error(error);
+  }
+
+  if (status & 0b10000000) {
+    // CC_READY
+    bq769x0_read_current(&current);
+
+    charge += (current / 4); // CC updated every 250ms
   }
 }
 

@@ -105,10 +105,11 @@ int bq769x0_configure(bq769x0_config_t config) {
     return rc;
   }
 
-  // disable continous current monitoring
-  rc = i2c_reg_update_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_CTRL2, 1 << BQ769X0_REG_CTRL2_CC_EN, 0);
+  // enable continous current monitoring
+  uint8_t cc_en = 1 << BQ769X0_REG_CTRL2_CC_EN;
+  rc = i2c_reg_update_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_CTRL2, cc_en, cc_en);
   if (rc < 0) {
-    SYS_LOG_ERR("failed to disable CC");
+    SYS_LOG_ERR("failed to enable CC");
     return rc;
   }
 
@@ -205,13 +206,6 @@ int bq769x0_read_voltage(int cell, uint16_t *voltage) {
 
 int bq769x0_read_current(int16_t *current) {
   int rc;
-
-  // enable CC_ONESHOT
-  uint8_t cc_oneshot = 1 << BQ769X0_REG_CTRL2_CC_ONESHOT;
-  rc = i2c_reg_update_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_CTRL2, cc_oneshot, cc_oneshot);
-  if (rc < 0) {
-    return rc;
-  }
 
   // read CC
   uint8_t msb;

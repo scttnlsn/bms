@@ -41,7 +41,7 @@ void bms_thread(void *a, void *b, void *c) {
 
   while (1) {
     bms_measure();
-    k_sleep(500);
+    k_sleep(200);
   }
 }
 
@@ -56,7 +56,7 @@ void logger_thread(void *a, void *b, void *c) {
 
   while (1) {
     voltages = bms_cell_voltages();
-    current = bms_pack_current();
+    current = bms_current();
 
     printk("mV=%d, %d, %d, %d\n", voltages[0], voltages[1], voltages[2], voltages[3]);
     printk("mA=%d\n", current);
