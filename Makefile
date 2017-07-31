@@ -1,6 +1,9 @@
 BOARD ?= nrf51_blenano
 CONF_FILE = prj.conf
 
+KBUILD_KCONFIG = $(PWD)/Kconfig
+export KBUILD_KCONFIG
+
 include $(ZEPHYR_BASE)/Makefile.inc
 
 flash: flash_nrf51

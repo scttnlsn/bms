@@ -34,24 +34,24 @@ int bms_init(void) {
   SYS_LOG_INF("initializing...");
 
   // setup alert interrupt
-  struct device *gpio = device_get_binding("GPIO_0");
+  struct device *gpio = device_get_binding(CONFIG_BMS_ALERT_DEVICE);
   if (gpio == NULL) {
-    SYS_LOG_ERR("failed to get binding for %s", "GPIO_0");
+    SYS_LOG_ERR("failed to get binding for %s", CONFIG_BMS_ALERT_DEVICE);
     return -EINVAL;
   }
 
-  gpio_pin_configure(gpio, 22, GPIO_DIR_IN | GPIO_INT | GPIO_INT_EDGE | GPIO_INT_ACTIVE_HIGH | GPIO_PUD_PULL_DOWN);
-  gpio_init_callback(&alert_cb, bms_alert, BIT(22));
+  gpio_pin_configure(gpio, CONFIG_BMS_ALERT_PIN, GPIO_DIR_IN | GPIO_INT | GPIO_INT_EDGE | GPIO_INT_ACTIVE_HIGH | GPIO_PUD_PULL_DOWN);
+  gpio_init_callback(&alert_cb, bms_alert, BIT(CONFIG_BMS_ALERT_PIN));
   gpio_add_callback(gpio, &alert_cb);
-  gpio_pin_enable_callback(gpio, 22);
+  gpio_pin_enable_callback(gpio, CONFIG_BMS_ALERT_PIN);
 
-  rc = bq769x0_init();
+  rc = bq769x0_init(CONFIG_BMS_I2C_DEVICE);
   if (rc < 0) {
     SYS_LOG_ERR("failed to initialize BQ769x0");
     return rc;
   }
 
-  rc = bq769x0_boot("GPIO_0", 21);
+  rc = bq769x0_boot(CONFIG_BMS_BOOT_DEVICE, CONFIG_BMS_BOOT_PIN);
   if (rc < 0) {
     SYS_LOG_ERR("failed to boot BQ769x0");
     return rc;

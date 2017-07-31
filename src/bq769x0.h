@@ -56,8 +56,8 @@ typedef struct {
   uint16_t ovp; // mV
 } bq769x0_config_t;
 
-int bq769x0_init(void);
-int bq769x0_boot(char *boot_port, int boot_pin);
+int bq769x0_init(char *i2c_device);
+int bq769x0_boot(char *boot_device, int boot_pin);
 int bq769x0_configure(bq769x0_config_t config);
 int bq769x0_read_voltage(int cell_n, uint16_t *voltage);
 int bq769x0_read_current(int16_t *current);

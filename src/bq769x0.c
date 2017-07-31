@@ -9,16 +9,15 @@ static struct device *i2c;
 static int8_t adc_offset;
 static uint16_t adc_gain;
 
-int bq769x0_init(void) {
+int bq769x0_init(char *i2c_device) {
   int rc;
 
   SYS_LOG_INF("initializing...");
 
-  // TODO: make binding a config var
-  i2c = device_get_binding("I2C_0");
+  i2c = device_get_binding(i2c_device);
 
   if (i2c == NULL) {
-    SYS_LOG_ERR("could not find I2C_0");
+    SYS_LOG_ERR("could not find %s", i2c_device);
     return -EINVAL;
   }
 
@@ -41,13 +40,13 @@ int bq769x0_init(void) {
   return 0;
 }
 
-int bq769x0_boot(char *boot_port, int boot_pin) {
+int bq769x0_boot(char *boot_device, int boot_pin) {
   SYS_LOG_INF("booting...");
 
-  struct device *gpio = device_get_binding(boot_port);
+  struct device *gpio = device_get_binding(boot_device);
 
   if (gpio == NULL) {
-    SYS_LOG_ERR("could not find %s", boot_port);
+    SYS_LOG_ERR("could not find %s", boot_device);
     return -EINVAL;
   }
 

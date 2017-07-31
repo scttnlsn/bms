@@ -1,0 +1,48 @@
+mainmenu "BMS Configuration"
+
+config PROJECT_BASE
+    string
+    option env="PROJECT_BASE"
+
+source "Kconfig.zephyr"
+
+source "$PROJECT_BASE/src/Kconfig"
+
+menu "BMS Settings"
+
+config BMS_BOOT_DEVICE
+       string
+       prompt "Boot device"
+       default "GPIO_0"
+       help
+         Specify the GPIO device name to be used for the BMS boot port
+
+config BMS_BOOT_PIN
+       int
+       prompt "Boot pin"
+       default 21
+       help
+         Specify the GPIO pin number to be used for the BMS boot pin
+
+config BMS_ALERT_DEVICE
+       string
+       prompt "Alert device"
+       default "GPIO_0"
+       help
+         Specify the GPIO device name to be used for the BMS alert port
+
+config BMS_ALERT_PIN
+       int
+       prompt "Alert pin"
+       default 22
+       help
+         Specify the GPIO pin number to be used for the BMS alert pin
+
+config BMS_I2C_DEVICE
+       string
+       prompt "I2C device"
+       default "I2C_0"
+       help
+         Specify the I2C device to be used for communicating with BQ769x0
+
+endmenu
