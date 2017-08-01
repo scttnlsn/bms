@@ -32,3 +32,5 @@ There are various configuration options which can be specified via Kconfig.  Run
 * `CONFIG_BMS_OVP_DISABLE` (default: `3400` mV)
 * `CONFIG_BMS_UVP_ENABLE` (default: `3300` mV)
 * `CONFIG_BMS_UVP_DISABLE` (default: `3100` mV)
+* `BMS_SCD_DELAY` (default: `10000` ms)
+* `BMS_OCD_DELAY` (default: `10000` ms)

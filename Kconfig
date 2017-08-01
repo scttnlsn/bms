@@ -75,4 +75,18 @@ config BMS_UVP_DISABLE
          The minimum cell voltage (specified in mV) at which under-voltage protection is disabled.
          This only applies whiel UVP is enabled.
 
+config BMS_SCD_DELAY
+       int
+       prompt "SCD delay"
+       default 10000
+       help
+         Time to wait (specified in ms) before clearing short-circuit error
+
+config BMS_OCD_DELAY
+       int
+       prompt "OCD delay"
+       default 10000
+       help
+         Time to wait (specified in ms) before cleaning over-current discharge error
+
 endmenu

@@ -14,13 +14,14 @@ static int16_t current; // most recent 250ms current average
 static int32_t charge; // cumulative mA seconds
 
 // state
-static uint32_t error_tick = 0;
+static s64_t error_tick = 0;
 static uint8_t ov = 0;
 static uint8_t uv = 0;
 static uint8_t scd = 0;
 static uint8_t ocd = 0;
 
 void bms_handle_error(uint8_t status);
+s64_t bms_ms_since_error(void);
 
 static struct gpio_callback alert_cb;
 
@@ -114,13 +115,19 @@ int bms_update(void) {
   }
 
   if (scd) {
-    // TODO
-    return 0;
+    if (bms_ms_since_error() > CONFIG_BMS_SCD_DELAY) {
+      bq769x0_clear_status(BQ769X0_STATUS_SCD);
+    } else {
+      return 0;
+    }
   }
 
   if (ocd) {
-    // TODO
-    return 0;
+    if (bms_ms_since_error() > CONFIG_BMS_OCD_DELAY) {
+      bq769x0_clear_status(BQ769X0_STATUS_OCD);
+    } else {
+      return 0;
+    }
   }
 
   if (ov) {
@@ -132,7 +139,7 @@ int bms_update(void) {
     }
 
     if (disable) {
-      bq769x0_clear_ov();
+      bq769x0_clear_status(BQ769X0_STATUS_OV);
 
       // FIXME: Do we need this?
       /* bq769x0_enable_charging(); */
@@ -148,7 +155,7 @@ int bms_update(void) {
     }
 
     if (disable) {
-      bq769x0_clear_uv();
+      bq769x0_clear_status(BQ769X0_STATUS_UV);
 
       // FIXME: Do we need this?
       /* bq769x0_enable_discharging(); */
@@ -175,7 +182,7 @@ int32_t bms_charge(void) {
 void bms_handle_error(uint8_t status) {
   SYS_LOG_INF("error status: %d", status);
 
-  error_tick = k_cycle_get_32();
+  error_tick = k_uptime_get();
 
   if (status & 0b00000100) {
     // over voltage
@@ -195,17 +202,15 @@ void bms_handle_error(uint8_t status) {
     // short circuit
     SYS_LOG_ERR("short circuit");
     scd = 1;
-
-    // TODO: wait some time before clearing this
-    // currently requires a reset
   }
 
   if (status & 0b00000001) {
     // overcurrent discharge
     SYS_LOG_ERR("overcurrent discharge");
     ocd = 1;
-
-    // TODO: wait some time before clearing this
-    // currently requires a reset
   }
+}
+
+s64_t bms_ms_since_error(void) {
+  return k_uptime_get() - error_tick;
 }
