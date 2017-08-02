@@ -314,6 +314,15 @@ int bq769x0_clear_status(uint8_t bit) {
   return 0;
 }
 
+uint8_t bq769x0_status_error(uint8_t status) {
+  // mask out CC_READY (not considered an error)
+  return status & 0b01111111;
+}
+
+uint8_t bq769x0_cc_ready(uint8_t status) {
+  return status & 0b10000000;
+}
+
 int bq769x0_enable_discharging(void) {
   int rc;
 

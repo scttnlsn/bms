@@ -18,6 +18,8 @@ int bq769x0_read_voltage(int cell_n, uint16_t *voltage);
 int bq769x0_read_current(int16_t *current);
 int bq769x0_read_status(uint8_t *status);
 int bq769x0_clear_status(uint8_t bit);
+uint8_t bq769x0_status_error(uint8_t status);
+uint8_t bq769x0_cc_ready(uint8_t status);
 int bq769x0_enable_discharging(void);
 int bq769x0_enable_charging(void);
 int bq769x0_balance_cell(int8_t cell);

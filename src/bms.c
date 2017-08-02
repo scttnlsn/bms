@@ -8,11 +8,9 @@
 
 static uint8_t cells[BMS_NUM_CELLS] = { 0, 1, 2, 4, };
 static uint16_t cell_voltages[BMS_NUM_CELLS];
-
 static int16_t current; // most recent 250ms current average
-static int32_t charge = BMS_CAPACITY; // cumulative mA seconds
-
-// state
+static u64_t capacity = BMS_NOMINAL_CAPACITY;
+static s64_t charge = -1; // cumulative mA seconds
 static s64_t error_tick = 0;
 static uint8_t ov = 0;
 static uint8_t uv = 0;
@@ -21,6 +19,7 @@ static uint8_t ocd = 0;
 
 void bms_handle_error(uint8_t status);
 s64_t bms_ms_since_error(void);
+void bms_interpolate_charge(void);
 
 static struct gpio_callback alert_cb;
 
@@ -96,21 +95,23 @@ int bms_update(void) {
     return rc;
   }
 
-  // mask out CC_READY (not considered an error)
-  uint8_t error = status & 0b01111111;
-
+  uint8_t error = bq769x0_status_error(status);
   if (error) {
     bms_handle_error(error);
   }
 
-  uint8_t cc_ready = status & 0b10000000;
+  for (int i = 0; i < BMS_NUM_CELLS; i++) {
+    bq769x0_read_voltage(cells[i], &cell_voltages[i]);
+  }
+
+  if (charge == -1) {
+    bms_interpolate_charge();
+  }
+
+  uint8_t cc_ready = bq769x0_cc_ready(status);
   if (cc_ready) {
     bq769x0_read_current(&current);
     charge += (current / 4); // CC updated every 250ms
-  }
-
-  for (int i = 0; i < BMS_NUM_CELLS; i++) {
-    bq769x0_read_voltage(cells[i], &cell_voltages[i]);
   }
 
   if (scd) {
@@ -175,7 +176,7 @@ int32_t bms_charge(void) {
 }
 
 uint8_t bms_soc(void) {
-  return ((s64_t) charge * 100) / BMS_CAPACITY;
+  return (capacity + charge) * 100 / capacity;
 }
 
 // helpers
@@ -188,15 +189,25 @@ void bms_handle_error(uint8_t status) {
   if (status & 0b00000100) {
     // over voltage
     SYS_LOG_ERR("over voltage limit");
-    ov = 1;
+
+    if (!ov) {
+      ov = 1;
+      charge = 0;
+    }
   }
 
   if (status & 0b00001000) {
     // under voltage
     SYS_LOG_ERR("under voltage limit");
-    uv = 1;
 
-    // TODO: probably shut down the MCU here as well, how do we know when the re-enable?
+    if (!uv) {
+      uv = 1;
+      capacity = -charge;
+
+      // TODO: persist updated capacity
+    }
+
+    // TODO: probably shut down the MCU here as well since it continues to draw current
   }
 
   if (status & 0b00000010) {
@@ -214,4 +225,21 @@ void bms_handle_error(uint8_t status) {
 
 s64_t bms_ms_since_error(void) {
   return k_uptime_get() - error_tick;
+}
+
+void bms_interpolate_charge(void) {
+  SYS_LOG_INF("interpolating charge");
+
+  uint32_t average_cell_voltage = 0;
+  for (int i = 0; i < BMS_NUM_CELLS; i++) {
+    average_cell_voltage += cell_voltages[i];
+  }
+
+  average_cell_voltage /= BMS_NUM_CELLS;
+
+  uint32_t mv_range = CONFIG_BMS_OVP_ENABLE - CONFIG_BMS_UVP_ENABLE;
+  u64_t capacity_per_mv = BMS_NOMINAL_CAPACITY / mv_range;
+  uint32_t mv_offset = CONFIG_BMS_OVP_ENABLE - average_cell_voltage;
+
+  charge = -(capacity_per_mv * mv_offset);
 }

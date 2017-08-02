@@ -2,7 +2,7 @@
 #define __BMS_H__
 
 #define BMS_NUM_CELLS 4
-#define BMS_CAPACITY 72000000 // mAs (20Ah)
+#define BMS_NOMINAL_CAPACITY 72000000 // mAs (20Ah)
 
 int bms_init(void);
 int bms_update(void);
