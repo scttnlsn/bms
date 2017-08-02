@@ -14,6 +14,7 @@ typedef struct {
   uint16_t voltages[BMS_NUM_CELLS];
   int16_t current;
   int32_t charge;
+  uint8_t soc;
 } bms_data_t;
 
 static bms_data_t bms_data;
@@ -46,10 +47,12 @@ void logger_thread(void *a, void *b, void *c) {
     bms_cell_voltages(bms_data.voltages);
     bms_data.current = bms_current();
     bms_data.charge = bms_charge();
+    bms_data.soc = bms_soc();
 
     printk("mV=%d, %d, %d, %d\n", bms_data.voltages[0], bms_data.voltages[1], bms_data.voltages[2], bms_data.voltages[3]);
     printk("mA=%d\n", bms_data.current);
     printk("charge=%d\n", bms_data.charge);
+    printk("soc=%d\n", bms_data.soc);
 
     ble_notify((uint8_t *) &bms_data, sizeof(bms_data));
     blinker_flash();

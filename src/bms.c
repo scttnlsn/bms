@@ -10,7 +10,7 @@ static uint8_t cells[BMS_NUM_CELLS] = { 0, 1, 2, 4, };
 static uint16_t cell_voltages[BMS_NUM_CELLS];
 
 static int16_t current; // most recent 250ms current average
-static int32_t charge; // cumulative mA seconds
+static int32_t charge = BMS_CAPACITY; // cumulative mA seconds
 
 // state
 static s64_t error_tick = 0;
@@ -172,6 +172,10 @@ int16_t bms_current(void) {
 
 int32_t bms_charge(void) {
   return charge;
+}
+
+uint8_t bms_soc(void) {
+  return ((s64_t) charge * 100) / BMS_CAPACITY;
 }
 
 // helpers
