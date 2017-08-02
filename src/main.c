@@ -10,6 +10,14 @@
 #define STACKSIZE 1024
 #define PRIORITY 5
 
+typedef struct {
+  uint16_t voltages[BMS_NUM_CELLS];
+  int16_t current;
+  int32_t charge;
+} bms_data_t;
+
+static bms_data_t bms_data;
+
 // bms thread
 
 K_THREAD_STACK_DEFINE(bms_thread_stack_area, STACKSIZE);
@@ -34,28 +42,16 @@ K_THREAD_STACK_DEFINE(logger_thread_stack_area, STACKSIZE);
 static struct k_thread logger_thread_data;
 
 void logger_thread(void *a, void *b, void *c) {
-  uint16_t *voltages;
-  int16_t current;
-  int32_t charge;
-
   while (1) {
-    voltages = bms_cell_voltages();
-    current = bms_current();
-    charge = bms_charge();
+    bms_cell_voltages(bms_data.voltages);
+    bms_data.current = bms_current();
+    bms_data.charge = bms_charge();
 
-    printk("mV=%d, %d, %d, %d\n", voltages[0], voltages[1], voltages[2], voltages[3]);
-    printk("mA=%d\n", current);
-    printk("charge=%d\n", charge);
+    printk("mV=%d, %d, %d, %d\n", bms_data.voltages[0], bms_data.voltages[1], bms_data.voltages[2], bms_data.voltages[3]);
+    printk("mA=%d\n", bms_data.current);
+    printk("charge=%d\n", bms_data.charge);
 
-    uint16_t values[5] = {
-      voltages[0],
-      voltages[1],
-      voltages[2],
-      voltages[3],
-      current
-    };
-
-    ble_notify((uint8_t *) values, 10);
+    ble_notify((uint8_t *) &bms_data, sizeof(bms_data));
     blinker_flash();
 
     k_sleep(2000);

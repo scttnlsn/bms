@@ -1,14 +1,13 @@
 #include <gpio.h>
 #include <logging/sys_log.h>
+#include <string.h>
 #include <zephyr.h>
 
 #include "bms.h"
 #include "bq769x0.h"
 
-#define NUM_CELLS 4
-
-static uint8_t cells[NUM_CELLS] = { 0, 1, 2, 4, };
-static uint16_t cell_voltages[NUM_CELLS];
+static uint8_t cells[BMS_NUM_CELLS] = { 0, 1, 2, 4, };
+static uint16_t cell_voltages[BMS_NUM_CELLS];
 
 static int16_t current; // most recent 250ms current average
 static int32_t charge; // cumulative mA seconds
@@ -110,7 +109,7 @@ int bms_update(void) {
     charge += (current / 4); // CC updated every 250ms
   }
 
-  for (int i = 0; i < NUM_CELLS; i++) {
+  for (int i = 0; i < BMS_NUM_CELLS; i++) {
     bq769x0_read_voltage(cells[i], &cell_voltages[i]);
   }
 
@@ -134,7 +133,7 @@ int bms_update(void) {
     // check to see if voltages have fallen enough to disable OVP
     uint8_t disable = 1;
 
-    for (int i = 0; i < NUM_CELLS; i++) {
+    for (int i = 0; i < BMS_NUM_CELLS; i++) {
       disable = disable & (cell_voltages[i] <= CONFIG_BMS_OVP_DISABLE);
     }
 
@@ -148,7 +147,7 @@ int bms_update(void) {
     // check to see if voltages have risen enough to disable UVP
     uint8_t disable = 1;
 
-    for (int i = 0; i < NUM_CELLS; i++) {
+    for (int i = 0; i < BMS_NUM_CELLS; i++) {
       disable = disable & (cell_voltages[i] >= CONFIG_BMS_UVP_DISABLE);
     }
 
@@ -161,8 +160,10 @@ int bms_update(void) {
   return 0;
 }
 
-uint16_t *bms_cell_voltages(void) {
-  return cell_voltages;
+int bms_cell_voltages(uint16_t *voltages) {
+  int len = sizeof(cell_voltages);
+  memcpy(voltages, cell_voltages, len);
+  return len;
 }
 
 int16_t bms_current(void) {
