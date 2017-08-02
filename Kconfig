@@ -45,6 +45,20 @@ config BMS_I2C_DEVICE
        help
          The I2C device to be used for communicating with BQ769x0
 
+config BMS_BLINK_DEVICE
+       string
+       prompt "Blink device"
+       default "GPIO_0"
+       help
+         The GPIO device name to be used for LED blinker
+
+config BMS_BLINK_PIN
+       int
+       prompt "Blink pin"
+       default 18
+       help
+         The GPIO pin number to be used for the LED blinker
+
 config BMS_OVP_ENABLE
        int
        prompt "OVP enable"

@@ -140,9 +140,7 @@ int bms_update(void) {
 
     if (disable) {
       bq769x0_clear_status(BQ769X0_STATUS_OV);
-
-      // FIXME: Do we need this?
-      /* bq769x0_enable_charging(); */
+      bq769x0_enable_charging();
     }
   }
 
@@ -156,9 +154,7 @@ int bms_update(void) {
 
     if (disable) {
       bq769x0_clear_status(BQ769X0_STATUS_UV);
-
-      // FIXME: Do we need this?
-      /* bq769x0_enable_discharging(); */
+      bq769x0_enable_discharging();
     }
   }
 
