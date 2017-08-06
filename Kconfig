@@ -69,7 +69,7 @@ config BMS_OVP_ENABLE
 config BMS_OVP_DISABLE
        int
        prompt "OVP disable"
-       default 3400
+       default 3350
        help
          The maximum cell voltage (specified in mV) at which over-voltage protection is disabled.
          This only applies while OVP is enabled.

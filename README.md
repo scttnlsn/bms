@@ -30,11 +30,27 @@ There are various configuration options which can be specified via Kconfig.  Run
 * `CONFIG_BMS_ALERT_PIN` (default: `22`)
 * `CONFIG_BMS_BLINK_DEVICE` (default: `GPIO_0`)
 * `CONFIG_BMS_BLINK_PIN` (default: `18`)
-
 * `CONFIG_BMS_OVP_ENABLE` (default: `3550` mV)
-* `CONFIG_BMS_OVP_DISABLE` (default: `3400` mV)
+* `CONFIG_BMS_OVP_DISABLE` (default: `3350` mV)
 * `CONFIG_BMS_UVP_ENABLE` (default: `3300` mV)
 * `CONFIG_BMS_UVP_DISABLE` (default: `3100` mV)
-
 * `CONFIG_BMS_SCD_DELAY` (default: `10000` ms)
 * `CONFIG_BMS_OCD_DELAY` (default: `10000` ms)
+
+## BLE Protocol
+
+The BMS implements a Bluetooth Low Energy peripheral for monitoring cell voltages, current draw and state-of-charge.  All status data is part of a single characteristic.
+
+Peripheral UUID: `8D9D7800-5B61-412A-AB71-5C7E0E559086`
+
+Characteristic UUID: `8D9D7801-5B61-412A-AB71-5C7E0E559086`
+
+Value structure (MSB to LSB):
+
+* cell 1 (mV) [2 bytes]
+* cell 2 (mV) [2 bytes]
+* cell 3 (mV) [2 bytes]
+* cell 4 (mV) [2 bytes]
+* current (mA) [4 bytes signed]
+* charge used (mAs) [4 bytes signed]
+* state of charge (percent) [4 bytes]
