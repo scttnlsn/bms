@@ -59,7 +59,7 @@ static const struct bt_data ad[] = {
 };
 
 static const struct bt_data sd[] = {
-  BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BLUETOOTH_DEVICE_NAME, (sizeof(CONFIG_BLUETOOTH_DEVICE_NAME) - 1)),
+  BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, (sizeof(CONFIG_BT_DEVICE_NAME) - 1)),
 };
 
 static void ble_connected(struct bt_conn *conn, u8_t err) {
