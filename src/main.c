@@ -83,3 +83,8 @@ void main(void) {
 
   SYS_LOG_INF("started");
 }
+
+void _SysFatalErrorHandler(unsigned int reason, const NANO_ESF *pEsf) {
+  blinker_on();
+  while (1);
+}

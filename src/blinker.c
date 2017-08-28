@@ -21,8 +21,16 @@ int blinker_init(char *device, int pin) {
   return 0;
 }
 
-void blinker_flash(void) {
+void blinker_on(void) {
   gpio_pin_write(gpio, gpio_pin, 1);
-  k_sleep(100);
+}
+
+void blinker_off(void) {
   gpio_pin_write(gpio, gpio_pin, 0);
+}
+
+void blinker_flash(void) {
+  blinker_on();
+  k_sleep(100);
+  blinker_off();
 }
