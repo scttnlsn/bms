@@ -1,8 +1,10 @@
 #include <gpio.h>
 #include <i2c.h>
 #include <logging/sys_log.h>
+#include <string.h>
 
 #include "bq769x0.h"
+#include "utils.h"
 
 #define BQ769X0_ADDR 0x08
 #define BQ769X0_CFG_VALUE 0x19
@@ -60,6 +62,11 @@ static struct device *i2c;
 
 static int8_t adc_offset;
 static uint16_t adc_gain;
+
+int bq769x0_reg_write_byte(uint8_t reg, uint8_t value);
+int bq769x0_reg_read(uint8_t reg, uint8_t *buffer, size_t length);
+int bq769x0_reg_read_byte(uint8_t reg, uint8_t *value);
+int bq769x0_reg_update_byte(uint8_t reg, uint8_t mask, uint8_t value);
 
 int bq769x0_init(char *i2c_device) {
   int rc;
@@ -125,13 +132,13 @@ int bq769x0_configure(bq769x0_config_t config) {
   // test I2C communication
   uint8_t cfg;
 
-  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_CFG, BQ769X0_CFG_VALUE);
+  rc = bq769x0_reg_write_byte(BQ769X0_REG_CFG, BQ769X0_CFG_VALUE);
   if (rc < 0) {
     SYS_LOG_ERR("failed to write CFG register");
     return rc;
   }
 
-  rc = i2c_reg_read_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_CFG, &cfg);
+  rc = bq769x0_reg_read_byte(BQ769X0_REG_CFG, &cfg);
   if (rc < 0) {
     SYS_LOG_ERR("failed to read CFG register");
     return rc;
@@ -144,7 +151,7 @@ int bq769x0_configure(bq769x0_config_t config) {
 
   // enable ADC
   uint8_t adc_en = 1 << BQ769X0_REG_CTRL1_ADC_EN;
-  rc = i2c_reg_update_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_CTRL1, adc_en, adc_en);
+  rc = bq769x0_reg_update_byte(BQ769X0_REG_SYS_CTRL1, adc_en, adc_en);
   if (rc < 0) {
     SYS_LOG_ERR("failed to enable ADC");
     return rc;
@@ -152,14 +159,14 @@ int bq769x0_configure(bq769x0_config_t config) {
 
   // enable continous current monitoring
   uint8_t cc_en = 1 << BQ769X0_REG_CTRL2_CC_EN;
-  rc = i2c_reg_update_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_CTRL2, cc_en, cc_en);
+  rc = bq769x0_reg_update_byte(BQ769X0_REG_SYS_CTRL2, cc_en, cc_en);
   if (rc < 0) {
     SYS_LOG_ERR("failed to enable CC");
     return rc;
   }
 
   // read ADC offset
-  rc = i2c_reg_read_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_ADCOFFSET, &adc_offset);
+  rc = bq769x0_reg_read_byte(BQ769X0_REG_ADCOFFSET, &adc_offset);
   if (rc < 0) {
     SYS_LOG_ERR("failed to read ADCOFFSET");
     return rc;
@@ -168,12 +175,12 @@ int bq769x0_configure(bq769x0_config_t config) {
   // read ADC gain
   uint8_t adc_gain1;
   uint8_t adc_gain2;
-  rc = i2c_reg_read_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_ADCGAIN1, &adc_gain1);
+  rc = bq769x0_reg_read_byte(BQ769X0_REG_ADCGAIN1, &adc_gain1);
   if (rc < 0) {
     SYS_LOG_ERR("failed to read ADCGAIN1");
     return rc;
   }
-  rc = i2c_reg_read_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_ADCGAIN2, &adc_gain2);
+  rc = bq769x0_reg_read_byte(BQ769X0_REG_ADCGAIN2, &adc_gain2);
   if (rc < 0) {
     SYS_LOG_ERR("failed to read ADCGAIN2");
     return rc;
@@ -181,7 +188,7 @@ int bq769x0_configure(bq769x0_config_t config) {
   adc_gain = 365 + (((adc_gain1 & 0b00001100) << 1) | ((adc_gain2 & 0b11100000) >> 5));
 
   // clear all alerts
-  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_STAT, 0b10111111);
+  rc = bq769x0_reg_write_byte(BQ769X0_REG_SYS_STAT, 0b10111111);
   if (rc < 0) {
     SYS_LOG_ERR("failed to clear alerts");
     return rc;
@@ -189,7 +196,7 @@ int bq769x0_configure(bq769x0_config_t config) {
 
   // set under-voltage protection
   uint8_t uvp = ((((config.uvp - adc_offset) * 1000 / adc_gain) >> 4) & 0xFF) + 1;
-  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_UV_TRIP, uvp);
+  rc = bq769x0_reg_write_byte(BQ769X0_REG_UV_TRIP, uvp);
   if (rc < 0) {
     SYS_LOG_ERR("failed to write UV_TRIP");
     return rc;
@@ -197,7 +204,7 @@ int bq769x0_configure(bq769x0_config_t config) {
 
   // set over-voltage protection
   uint8_t ovp = (((config.ovp - adc_offset) * 1000 / adc_gain) >> 4) & 0xFF;
-  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_OV_TRIP, ovp);
+  rc = bq769x0_reg_write_byte(BQ769X0_REG_OV_TRIP, ovp);
   if (rc < 0) {
     SYS_LOG_ERR("failed to write OV_TRIP");
     return rc;
@@ -208,7 +215,7 @@ int bq769x0_configure(bq769x0_config_t config) {
   protect1 |= (1 << BQ769X0_REG_PROTECT1_RSNS); // set RSNS = 1
   protect1 |= (0x2 << BQ769X0_REG_PROTECT1_SCD_D); // 200uS delay
   protect1 |= (0x7 << BQ769X0_REG_PROTECT1_SCD_T); // 200mV across 0.005ohm = 40A
-  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_PROTECT1, protect1);
+  rc = bq769x0_reg_write_byte(BQ769X0_REG_PROTECT1, protect1);
   if (rc < 0) {
     SYS_LOG_ERR("failed to write PROTECT1");
     return rc;
@@ -218,7 +225,7 @@ int bq769x0_configure(bq769x0_config_t config) {
   uint8_t protect2 = 0;
   protect2 |= (0x0 << BQ769X0_REG_PROTECT2_OCD_D); // 8ms delay
   protect2 |= (0x6 << BQ769X0_REG_PROTECT2_OCD_T); // 50mV across 0.005ohm = 10A
-  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_PROTECT2, protect2);
+  rc = bq769x0_reg_write_byte(BQ769X0_REG_PROTECT2, protect2);
   if (rc < 0) {
     SYS_LOG_ERR("failed to write PROTECT2");
     return rc;
@@ -228,7 +235,7 @@ int bq769x0_configure(bq769x0_config_t config) {
   uint8_t protect3 = 0;
   protect3 |= (0x1 << BQ769X0_REG_PROTECT3_UV_D); // 4s
   protect3 |= (0x1 << BQ769X0_REG_PROTECT3_OV_D); // 2s
-  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_PROTECT3, protect3);
+  rc = bq769x0_reg_write_byte(BQ769X0_REG_PROTECT3, protect3);
   if (rc < 0) {
     SYS_LOG_ERR("failed to write PROTECT3");
     return rc;
@@ -244,7 +251,8 @@ int bq769x0_read_voltage(int cell, uint16_t *voltage) {
   uint8_t reg = BQ769X0_REG_VC1_HI + cell * 2;
   uint8_t buffer[2];
 
-  rc = i2c_burst_read(i2c, BQ769X0_ADDR, reg, buffer, 2);
+  // FIXME
+  rc = bq769x0_reg_read(reg, buffer, 2);
   if (rc < 0) {
     SYS_LOG_ERR("failed to read cell %d voltage", cell);
     return rc;
@@ -263,13 +271,13 @@ int bq769x0_read_current(int16_t *current) {
   uint8_t msb;
   uint8_t lsb;
 
-  rc = i2c_reg_read_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_CC_HI, &msb);
+  rc = bq769x0_reg_read_byte(BQ769X0_REG_CC_HI, &msb);
   if (rc < 0) {
     SYS_LOG_ERR("failed to read CC_HI");
     return rc;
   }
 
-  rc = i2c_reg_read_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_CC_LO, &lsb);
+  rc = bq769x0_reg_read_byte(BQ769X0_REG_CC_LO, &lsb);
   if (rc < 0) {
     SYS_LOG_ERR("failed to read CC_LO");
     return rc;
@@ -280,7 +288,7 @@ int bq769x0_read_current(int16_t *current) {
 
   // clear CC_READY
   uint8_t cc_ready = 1 << BQ769X0_REG_STAT_CC_READY;
-  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_STAT, cc_ready);
+  rc = bq769x0_reg_write_byte(BQ769X0_REG_SYS_STAT, cc_ready);
   if (rc < 0) {
     SYS_LOG_ERR("failed to clear CC_READY");
     return rc;
@@ -292,7 +300,7 @@ int bq769x0_read_current(int16_t *current) {
 int bq769x0_read_status(uint8_t *status) {
   int rc;
 
-  rc = i2c_reg_read_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_STAT, status);
+  rc = bq769x0_reg_read_byte(BQ769X0_REG_SYS_STAT, status);
   if (rc < 0) {
     SYS_LOG_ERR("failed to read status");
     return rc;
@@ -305,7 +313,7 @@ int bq769x0_clear_status(uint8_t bit) {
   int rc;
 
   uint8_t mask = 1 << bit;
-  rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_STAT, mask);
+  rc = bq769x0_reg_write_byte(BQ769X0_REG_SYS_STAT, mask);
   if (rc < 0) {
     SYS_LOG_ERR("failed to clear status: %d", mask);
     return rc;
@@ -327,7 +335,7 @@ int bq769x0_enable_discharging(void) {
   int rc;
 
   uint8_t dsg_on = 1 << BQ769X0_REG_CTRL2_DSG_ON;
-  rc = i2c_reg_update_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_CTRL2, dsg_on, dsg_on);
+  rc = bq769x0_reg_update_byte(BQ769X0_REG_SYS_CTRL2, dsg_on, dsg_on);
   if (rc < 0) {
     SYS_LOG_ERR("failed to enable discharging");
     return rc;
@@ -340,7 +348,7 @@ int bq769x0_enable_charging(void) {
   int rc;
 
   uint8_t chg_on = 1 << BQ769X0_REG_CTRL2_CHG_ON;
-  rc = i2c_reg_update_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_SYS_CTRL2, chg_on, chg_on);
+  rc = bq769x0_reg_update_byte(BQ769X0_REG_SYS_CTRL2, chg_on, chg_on);
   if (rc < 0) {
     SYS_LOG_ERR("failed to enable charging");
     return rc;
@@ -353,13 +361,13 @@ int bq769x0_balance_cell(int8_t cell) {
   int rc;
 
   if (cell == -1) {
-    rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_CELLBAL1, 0);
+    rc = bq769x0_reg_write_byte(BQ769X0_REG_CELLBAL1, 0);
     if (rc < 0) {
       SYS_LOG_ERR("failed to disable cell balancing");
       return rc;
     }
   } else {
-    rc = i2c_reg_write_byte(i2c, BQ769X0_ADDR, BQ769X0_REG_CELLBAL1, 1 << cell);
+    rc = bq769x0_reg_write_byte(BQ769X0_REG_CELLBAL1, 1 << cell);
     if (rc < 0) {
       SYS_LOG_ERR("failed to enable cell balancing");
       return rc;
@@ -367,4 +375,51 @@ int bq769x0_balance_cell(int8_t cell) {
   }
 
   return 0;
+}
+
+// helpers
+
+int bq769x0_reg_write_byte(uint8_t reg, uint8_t value) {
+  uint8_t data[3] = { (BQ769X0_ADDR << 1) | 0, reg, value };
+  uint8_t crc = crc8(data, sizeof(data));
+
+  uint8_t buffer[3] = { reg, value, crc };
+  return i2c_write(i2c, buffer, sizeof(buffer), BQ769X0_ADDR);
+}
+
+int bq769x0_reg_read(uint8_t reg, uint8_t *buffer, size_t length) {
+  uint8_t result[length * 2];
+
+  int rc = i2c_burst_read(i2c, BQ769X0_ADDR, reg, result, length * 2);
+  if (rc < 0) {
+    SYS_LOG_ERR("failed to read register");
+    return rc;
+  }
+
+  for (int i = 0; i < (length * 2); i += 2) {
+    // TODO: check CRCs
+    buffer[i / 2] = result[i];
+  }
+
+  return 0;
+}
+
+int bq769x0_reg_read_byte(uint8_t reg, uint8_t *value) {
+  return bq769x0_reg_read(reg, value, 1);
+}
+
+int bq769x0_reg_update_byte(uint8_t reg, uint8_t mask, uint8_t value) {
+  uint8_t old_value, new_value;
+
+  int rc = bq769x0_reg_read_byte(reg, &old_value);
+  if (rc != 0) {
+    return rc;
+  }
+
+  new_value = (old_value & ~mask) | (value & mask);
+  if (new_value == old_value) {
+    return 0;
+  }
+
+  return bq769x0_reg_write_byte(reg, new_value);
 }

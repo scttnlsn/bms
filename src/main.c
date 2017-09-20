@@ -25,12 +25,6 @@ K_THREAD_STACK_DEFINE(bms_thread_stack_area, STACKSIZE);
 static struct k_thread bms_thread_data;
 
 void bms_thread(void *a, void *b, void *c) {
-  int rc = bms_init();
-
-  if (rc < 0) {
-    SYS_LOG_INF("failed to initialize BMS");
-  }
-
   while (1) {
     bms_update();
     k_sleep(200);
@@ -66,6 +60,12 @@ void main(void) {
 
   ble_init();
   blinker_init(CONFIG_BMS_BLINK_DEVICE, CONFIG_BMS_BLINK_PIN);
+
+  int rc = bms_init();
+  if (rc < 0) {
+    SYS_LOG_INF("failed to initialize BMS");
+    return;
+  }
 
   k_thread_create(
     &bms_thread_data, bms_thread_stack_area,
