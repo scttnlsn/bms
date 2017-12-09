@@ -1,6 +1,30 @@
 # BMS
 
-Firmware for controlling [TI BQ769x0](http://www.ti.com/product/BQ76920) battery monitors.  Designed to run on the [Nordic nRF51822](https://www.nordicsemi.com/eng/Products/Bluetooth-low-energy/nRF51822) ARM Cortex-M0 MCU.
+Integrated battery management system for 4-series li-ion packs (based on the [BQ76920](http://www.ti.com/product/BQ76920) from Texas Instruments).
+
+![Board](hardware/board.jpg)
+
+* programmable over/under voltage protection for each cell
+* programmable short-circuit detection
+* auto cell balancing
+* cell voltage monitoring
+* coulomb counting for accurate state-of-charge tracking
+* status available over BLE
+
+## Hardware
+
+Full schematic and PCB layout available in the `hardware` directory.
+
+* [TI BQ76920](http://www.ti.com/product/BQ76920) analog front-end
+* [Nordic nRF51822](https://www.nordicsemi.com/eng/Products/Bluetooth-low-energy/nRF51822) ARM Cortex-M host controller
+* FETs for enabling or disabling charge/discharge
+* shunt resistor for current measurement
+
+## Firmware
+
+The host controller firmware is based on the [Zephyr RTOS](https://www.zephyrproject.org).  It communicates with the BQ76920 via I2C and handles various error states that may occur in the BQ76920.  It also exposes a BLE peripheral for wireless monitoring.
+
+### Build
 
 Requirements:
 
@@ -8,19 +32,17 @@ Requirements:
 * [OpenOCD](http://openocd.org)
 * [Zephyr RTOS](https://www.zephyrproject.org) (included as submodule)
 
-## Getting started
-
 Setup:
 
 * `git submodule update --init`
 * `source env.sh`
 
-Build:
+Compile and flash:
 
 * `make`
 * `make flash`
 
-## Configuration
+### Configuration
 
 There are various configuration options which can be specified via Kconfig.  Run `make menuconfig` to browse the available options and override any of the default values.
 
