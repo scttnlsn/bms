@@ -10,7 +10,7 @@
 #define STACKSIZE 1024
 #define PRIORITY 5
 
-typedef struct {
+typedef struct __attribute__((__packed__)) {
   uint16_t voltages[BMS_NUM_CELLS];
   int16_t current;
   int32_t charge;
@@ -49,9 +49,20 @@ void logger_thread(void *a, void *b, void *c) {
     printk("soc=%d\n", bms_data.soc);
 
     ble_notify((uint8_t *) &bms_data, sizeof(bms_data));
-    blinker_flash();
 
     k_sleep(2000);
+  }
+}
+
+// serial logger thread
+
+K_THREAD_STACK_DEFINE(flasher_thread_stack_area, STACKSIZE);
+static struct k_thread flasher_thread_data;
+
+void flasher_thread(void *a, void *b, void *c) {
+  while (1) {
+    blinker_flash();
+    k_sleep(30000);
   }
 }
 
@@ -78,6 +89,13 @@ void main(void) {
     &logger_thread_data, logger_thread_stack_area,
     K_THREAD_STACK_SIZEOF(logger_thread_stack_area),
     logger_thread,
+    NULL, NULL, NULL,
+    PRIORITY, 0, K_NO_WAIT);
+
+  k_thread_create(
+    &flasher_thread_data, flasher_thread_stack_area,
+    K_THREAD_STACK_SIZEOF(flasher_thread_stack_area),
+    flasher_thread,
     NULL, NULL, NULL,
     PRIORITY, 0, K_NO_WAIT);
 

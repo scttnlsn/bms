@@ -73,6 +73,6 @@ Value structure (MSB to LSB):
 * cell 2 (mV) [2 bytes]
 * cell 3 (mV) [2 bytes]
 * cell 4 (mV) [2 bytes]
-* current (mA) [4 bytes signed]
+* current (mA) [2 bytes signed]
 * charge used (mAs) [4 bytes signed]
-* state of charge (percent) [4 bytes]
+* state of charge (percent) [1 byte]
