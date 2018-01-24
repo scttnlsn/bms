@@ -1,12 +1,10 @@
-BOARD ?= nrf51_blenano
-CONF_FILE = prj.conf
+build:
+	cd build && make
 
-KBUILD_KCONFIG = $(PWD)/Kconfig
-export KBUILD_KCONFIG
+flash:
+	openocd -f interface/stlink-v2.cfg -f target/nrf51.cfg -c "program ./build/zephyr/zephyr.elf verify reset exit"
 
-include $(ZEPHYR_BASE)/Makefile.inc
+menuconfig:
+	cd build && make menuconfig
 
-flash: flash_nrf51
-
-flash_nrf51:
-	openocd -f interface/stlink-v2.cfg -f target/nrf51.cfg -c "program outdir/nrf51_blenano/zephyr.elf verify reset exit"
+.PHONY: build flash menuconfig

@@ -35,7 +35,7 @@ Requirements:
 Setup:
 
 * `git submodule update --init`
-* `source env.sh`
+* `./setup.sh`
 
 Compile and flash:
 

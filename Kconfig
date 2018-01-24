@@ -1,12 +1,10 @@
 mainmenu "BMS Configuration"
 
-config PROJECT_BASE
+config ZEPHYR_BASE
     string
-    option env="PROJECT_BASE"
+    option env="ZEPHYR_BASE"
 
-source "Kconfig.zephyr"
-
-source "$PROJECT_BASE/src/Kconfig"
+source "$ZEPHYR_BASE/Kconfig.zephyr"
 
 menu "BMS Settings"
 
