@@ -12,14 +12,14 @@ static uint16_t cell_voltages[BMS_NUM_CELLS];
 static int16_t current; // most recent 250ms current average
 static u64_t capacity = BMS_NOMINAL_CAPACITY;
 static s64_t charge = -1; // cumulative mA seconds
-static s64_t error_tick = 0;
 static uint8_t ov = 0;
 static uint8_t uv = 0;
 static uint8_t scd = 0;
+static s64_t scd_tick = 0;
 static uint8_t ocd = 0;
+static s64_t ocd_tick = 0;
 
 void bms_handle_error(uint8_t status);
-s64_t bms_ms_since_error(void);
 void bms_interpolate_charge(void);
 
 static struct gpio_callback alert_cb;
@@ -115,16 +115,20 @@ int bms_update(void) {
   }
 
   if (scd) {
-    if (bms_ms_since_error() > CONFIG_BMS_SCD_DELAY) {
+    if (k_uptime_get() - scd_tick > CONFIG_BMS_SCD_DELAY) {
       bq769x0_clear_status(BQ769X0_STATUS_SCD);
+      bq769x0_enable_charging();
+      bq769x0_enable_discharging();
     } else {
       return 0;
     }
   }
 
   if (ocd) {
-    if (bms_ms_since_error() > CONFIG_BMS_OCD_DELAY) {
+    if (k_uptime_get() - ocd_tick > CONFIG_BMS_OCD_DELAY) {
       bq769x0_clear_status(BQ769X0_STATUS_OCD);
+      bq769x0_enable_charging();
+      bq769x0_enable_discharging();
     } else {
       return 0;
     }
@@ -188,23 +192,21 @@ uint8_t bms_soc(void) {
 void bms_handle_error(uint8_t status) {
   SYS_LOG_INF("error status: %d", status);
 
-  error_tick = k_uptime_get();
-
   if (status & 0b00000100) {
     // over voltage
-    SYS_LOG_ERR("over voltage limit");
-
     if (!ov) {
+      SYS_LOG_ERR("over voltage limit");
       ov = 1;
       charge = 0;
     }
+  } else {
+    ov = 0;
   }
 
   if (status & 0b00001000) {
     // under voltage
-    SYS_LOG_ERR("under voltage limit");
-
     if (!uv) {
+      SYS_LOG_ERR("under voltage limit");
       uv = 1;
       capacity = -charge;
 
@@ -212,23 +214,31 @@ void bms_handle_error(uint8_t status) {
     }
 
     // TODO: probably shut down the MCU here as well since it continues to draw current
+  } else {
+    uv = 0;
   }
 
   if (status & 0b00000010) {
     // short circuit
-    SYS_LOG_ERR("short circuit");
+    if (!scd) {
+      SYS_LOG_ERR("short circuit");
+      scd_tick = k_uptime_get();
+    }
     scd = 1;
+  } else {
+    scd = 0;
   }
 
   if (status & 0b00000001) {
     // overcurrent discharge
-    SYS_LOG_ERR("overcurrent discharge");
+    if (!ocd) {
+      SYS_LOG_ERR("overcurrent discharge");
+      ocd_tick = k_uptime_get();
+    }
     ocd = 1;
+  } else {
+    ocd = 0;
   }
-}
-
-s64_t bms_ms_since_error(void) {
-  return k_uptime_get() - error_tick;
 }
 
 void bms_interpolate_charge(void) {
