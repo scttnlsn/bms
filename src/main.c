@@ -11,6 +11,7 @@
 #define PRIORITY 5
 
 typedef struct __attribute__((__packed__)) {
+  uint8_t status;
   uint16_t voltages[BMS_NUM_CELLS];
   int16_t current;
   int32_t charge;
@@ -38,6 +39,7 @@ static struct k_thread logger_thread_data;
 
 void logger_thread(void *a, void *b, void *c) {
   while (1) {
+    bms_data.status = bms_status();
     bms_cell_voltages(bms_data.voltages);
     bms_data.current = bms_current();
     bms_data.charge = bms_charge();

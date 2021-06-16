@@ -6,6 +6,7 @@
 #include "bms.h"
 #include "bq769x0.h"
 
+static uint8_t status;
 static uint8_t cells[BMS_NUM_CELLS] = { 0, 1, 2, 4, };
 static uint16_t cell_voltages[BMS_NUM_CELLS];
 static int16_t current; // most recent 250ms current average
@@ -87,7 +88,6 @@ int bms_init(void) {
 
 // should be called at least every 250ms for accurate coulomb counting
 int bms_update(void) {
-  uint8_t status;
   int rc;
 
   rc = bq769x0_read_status(&status);
@@ -159,6 +159,10 @@ int bms_update(void) {
   }
 
   return 0;
+}
+
+uint8_t bms_status() {
+  return status & 0xF; // only include: UV | OV | SCD | OCD |
 }
 
 int bms_cell_voltages(uint16_t *voltages) {

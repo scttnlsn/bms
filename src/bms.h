@@ -6,6 +6,7 @@
 
 int bms_init(void);
 int bms_update(void);
+uint8_t bms_status(void);
 int bms_cell_voltages(uint16_t *voltages);
 int16_t bms_current(void);
 int32_t bms_charge(void);

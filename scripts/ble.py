@@ -13,13 +13,14 @@ mac = sys.argv[1]
 characteristic_uuid = uuid.UUID('8D9D7801-5B61-412A-AB71-5C7E0E559086')
 
 def display(values):
-    print('cell 1: %dmV' % values[0])
-    print('cell 2: %dmV' % values[1])
-    print('cell 3: %dmV' % values[2])
-    print('cell 4: %dmV' % values[3])
-    print('current: %dmA' % values[4])
-    print('charge: %d' % values[5])
-    print('soc: %d' % values[6])
+    print('status: %d' % values[0])
+    print('cell 1: %dmV' % values[1])
+    print('cell 2: %dmV' % values[2])
+    print('cell 3: %dmV' % values[3])
+    print('cell 4: %dmV' % values[4])
+    print('current: %dmA' % values[5])
+    print('charge: %d' % values[6])
+    print('soc: %d' % values[7])
 
 class NotificationDelegate(bluepy.btle.DefaultDelegate):
 
@@ -28,7 +29,7 @@ class NotificationDelegate(bluepy.btle.DefaultDelegate):
 
     def handleNotification(self, handle, data):
         print('bytes=%d' % len(data))
-        values = struct.unpack('<HHHHhiB', data)
+        values = struct.unpack('<BHHHHhiB', data)
         display(values)
 
 print('connecting to %s...' % mac)
